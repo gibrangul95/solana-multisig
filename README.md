@@ -1,66 +1,117 @@
-# Multisig
+# Solana Multisig
 
-An example of a multisig to execute arbitrary Solana transactions.
+## Prerequisites
 
-This program can be used to allow a multisig to govern anything a regular
-Pubkey can govern. One can use the multisig as a BPF program upgrade
-authority, a mint authority, etc.
+1. [Docker](https://docs.docker.com/get-started/)
+2. Rust
 
-To use, one must first create a `Multisig` account, specifying two important
-parameters:
-
-1. Owners - the set of addresses that sign transactions for the multisig.
-2. Threshold - the number of signers required to execute a transaction.
-
-Once the `Multisig` account is created, one can create a `Transaction`
-account, specifying the parameters for a normal solana transaction.
-
-To sign, owners should invoke the `approve` instruction, and finally,
-the `execute_transaction`, once enough (i.e. `threhsold`) of the owners have
-signed.
-
-## Note
-
-* **This code is unaudited. Use at your own risk.**
-
-## Non-Upgradeable mainnet-beta verifiable deployed versions
-
-* Tag 0.7.0 deployed at: `msigmtwzgXJHj2ext4XJjCDmpbcMuufFb5cHuwg6Xdt`
-
-To verify: check out tag 0.7.0 and...
-```bash
-cd serum/multisig/programs/multisig
-anchor verify msigmtwzgXJHj2ext4XJjCDmpbcMuufFb5cHuwg6Xdt`
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+rustup component add rustfmt
 ```
 
+3. Solana Tool Suite
 
-## Developing
+```
+sh -c "$(curl -sSfL https://release.solana.com/v1.7.12/install)"
+```
 
-[Anchor](https://github.com/project-serum/anchor) is used for developoment, and it's
-recommended workflow is used here. To get started, see the [guide](https://project-serum.github.io/anchor/getting-started/introduction.html).
+4. Anchor Cli V16
 
-### Build
+```
+cargo install --git https://github.com/project-serum/anchor --tag v0.16.0 anchor-cli --locked
+```
+
+Verify anchor installation
+
+```
+anchor --version
+```
+
+5. Mocha (npm global)
+
+```
+npm install -g mocha
+```
+
+6. Project Serum JS package
+
+```
+npm install -g @project-serum/anchor
+```
+
+7. Ensure Global node path is correct
+
+```
+export NODE_PATH="$(npm config get prefix)/lib/node_modules"
+```
+
+## Generate Wallet Address
+
+In a separate terminal, start a local network. If you're running solana for the first time, generate a wallet. A new file is generated and stored at `~/.config/solana/id.json`.
+Copy the generated Public Key and Secret Seed for later use.
+
+```
+solana-keygen new
+```
+
+## Config Solana Cli Network
+
+Local network
+
+```
+solana config set --url http://127.0.0.1:8899
+```
+
+Dev network
+
+```
+solana config set --url https://api.devnet.solana.com
+```
+
+## Launch the Local Validator node
+
+```
+solana-test-validator
+```
+
+## Manage Wallet funds
+
+Ensure that the main wallet has funds
+
+### Airdrop Sol To Wallet
+
+```
+solana airdrop 10 <WALLET_PUBLIC_KEY>
+```
+
+### Ensure funds in Wallet
+
+```
+solana balance
+```
+
+### Exit the validator Node
+
+Anchor automatically starts and stops the validator while testing
+
+```
+Ctrl+c
+```
+
+## Build
+
+Build the multisig program into the target directory. Needs a running docker instance.
 
 ```bash
 anchor build --verifiable
 ```
 
-The `--verifiable` flag should be used before deploying so that your build artifacts
-can be deterministically generated with docker.
+## Test
 
-### Test
+Run the files in the `/tests` directory. Anchor populates the workspace object on `line 12: /tests/multisig.js`. This workspace object it the key to enabling multisig transactions using serum.
 
 ```bash
 anchor test
 ```
-
-### Verify
-
-To verify the program deployed on Solana matches your local source code, install
-docker, `cd programs/multisig`, and run
-
-```bash
-anchor verify <program-id | write-buffer>
-```
-
-A list of build artifacts can be found under [releases](https://github.com/project-serum/multisig/releases).
