@@ -69,6 +69,56 @@ pub mod serum_multisig {
         tx.multisig = *ctx.accounts.multisig.to_account_info().key;
         tx.did_execute = false;
         tx.owner_set_seqno = ctx.accounts.multisig.owner_set_seqno;
+        let owner_index = ctx
+            .accounts
+            .multisig
+            .owners
+            .iter()
+            .position(|a| a == ctx.accounts.owner.key)
+            .ok_or(ErrorCode::InvalidOwner)?;
+
+        ctx.accounts.transaction.signers[owner_index] = true;
+
+        // Has this been executed already?
+        if ctx.accounts.transaction.did_execute {
+            return Err(ErrorCode::AlreadyExecuted.into());
+        }
+
+        // Do we have enough signers.
+        let sig_count = ctx
+            .accounts
+            .transaction
+            .signers
+            .iter()
+            .filter(|&did_sign| *did_sign)
+            .count() as u64;
+        if sig_count < ctx.accounts.multisig.threshold {
+            return Err(ErrorCode::NotEnoughSigners.into());
+        }
+
+        // Execute the transaction signed by the multisig.
+        let mut ix: Instruction = (&*ctx.accounts.transaction).into();
+        ix.accounts = ix
+            .accounts
+            .iter()
+            .map(|acc| {
+                let mut acc = acc.clone();
+                if &acc.pubkey == ctx.accounts.multisig_signer.key {
+                    acc.is_signer = true;
+                }
+                acc
+            })
+            .collect();
+        let seeds = &[
+            ctx.accounts.multisig.to_account_info().key.as_ref(),
+            &[ctx.accounts.multisig.nonce],
+        ];
+        let signer = &[&seeds[..]];
+        let accounts = ctx.remaining_accounts;
+        solana_program::program::invoke_signed(&ix, accounts, signer)?;
+
+        // Burn the transaction to ensure one time use.
+        ctx.accounts.transaction.did_execute = true;
 
         Ok(())
     }
@@ -191,6 +241,14 @@ pub struct CreateTransaction<'info> {
     #[account(signer)]
     proposer: AccountInfo<'info>,
     rent: Sysvar<'info, Rent>,
+    #[account(constraint = multisig.owner_set_seqno == transaction.owner_set_seqno)]
+    #[account(signer)]
+    owner: AccountInfo<'info>,
+    #[account(
+        seeds = [multisig.to_account_info().key.as_ref()],
+        bump = multisig.nonce,
+    )]
+    multisig_signer: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]

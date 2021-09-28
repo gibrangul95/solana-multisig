@@ -1,2 +1,5 @@
 .anchor
 target
+node_modules
+docker-target
+tests/ts
