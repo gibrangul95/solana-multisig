@@ -1,0 +1,16 @@
+{
+  "name": "tests",
+  "version": "1.0.0",
+  "description": "",
+  "main": "accounts.js",
+  "scripts": {
+    "setup": "concurrently \"yarn install\" \"(cd ts && yarn install) && cd ts && yarn build\"",
+    "build": "cd ts && yarn build",
+    "test": "mocha -t 1000000 updated.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^6.2.2"
+  }
+}

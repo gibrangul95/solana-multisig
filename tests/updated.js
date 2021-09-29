@@ -1,7 +1,8 @@
-const anchor = require("@project-serum/anchor");
-// const anchor = require('./ts/dist/cjs');
+// const anchor = require("@project-serum/anchor");
+const anchor = require('./ts/dist/cjs');
 const assert = require("assert");
 const fs = require('fs');
+const walletSecret = require('./id.json');
 
 const { accounts: testAccounts } = require('./accounts');
 
@@ -9,23 +10,18 @@ const pid = new anchor.web3.PublicKey('A3HyJSNet7Wx1Sj7rm8WspNrxtLLXamZMWjHG1B6J
 
 describe("multisig", () => {
   // Configure the client to use the local cluster.
-  let provider = anchor.Provider.env()
+  let provider = anchor.Provider.local('https://api.devnet.solana.com/')
   anchor.setProvider(provider);
 
   const program = anchor.workspace.SerumMultisig;
 
-  console.log(program.rpc.createTransaction.toString())
-
-  const systemWallet = anchor.web3.Keypair.fromSecretKey(
-    Buffer.from(JSON.parse(fs.readFileSync(process.env.ANCHOR_WALLET, { encoding: "utf-8" })))
-  );
+  const systemWallet = anchor.web3.Keypair.fromSecretKey(Buffer.from(walletSecret));
   console.log('Node Wallet Key: ', systemWallet.publicKey.toString())
 
   it("Tests the multisig program", async () => {
     // Generate a new Solana Keypair (Multisig Account Address)
     const multisig = anchor.web3.Keypair.generate();
-    console.log('Multisig Account Address: ', multisig.publicKey.toString())
-    // console.log('SecretKey: ', Buffer.from(multisig.secretKey).toString('hex'))
+    console.log('Multisig Account Address:', multisig.publicKey.toString())
 
     // Find Corressponding Wallet for the Multisig account, if it doesn't exist create one
     // Generated using the Program Address and Multisig account address
@@ -36,7 +32,7 @@ describe("multisig", () => {
       [multisig.publicKey.toBuffer()],
       pid
     );
-    console.log('Multisig Wallet Address: ', multisigSignerWallet.toString())
+    console.log('Multisig Wallet Address:', multisigSignerWallet.toString())
 
     // Transaction Size, no detailed documentation
     const multisigSize = 200;
@@ -81,9 +77,6 @@ describe("multisig", () => {
     // Transfer 2 SOL to the newly created wallet using our system wallet
     await transfer(provider, systemWallet.publicKey, multisigSignerWallet, systemWallet)
 
-    // Multisig Program ID
-
-
     // Accounts we need to transfer between
     // Account 1: Multisig Account wallet
     // Account 2: Destination Account
@@ -107,43 +100,19 @@ describe("multisig", () => {
       lamports: new anchor.BN(1000000000),
     })
 
-    const transactionID = anchor.web3.Keypair.generate();
-
     const data = tx.data
     const transferPid = anchor.web3.SystemProgram.programId
 
-    // Owner A proposes the transfer transaction on the network
-    // Build a transaction that invokes the multisig program on the chain
-    // Wraps our original native asset transaction
-    // transactionID holds the keyPair for the transaction
-
-    console.log(`Transaction Account: ${transactionID.publicKey.toString()}`)
-    const txSize = 1000; // Again no documentation for size
     await program.rpc.createTransaction(transferPid, accounts, data, {
       accounts: {
         multisig: multisig.publicKey,
-        transaction: transactionID.publicKey,
-        proposer: ownerA.publicKey,
+        signer1: ownerA.publicKey,
+        signer2: ownerC.publicKey,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        owner: ownerC.publicKey,
         multisigSigner: multisigSignerWallet,
       },
-      instructions: [
-        anchor.web3.SystemProgram.createAccount({
-          fromPubkey: systemWallet.publicKey,
-          newAccountPubkey: transactionID.publicKey,
-          space: txSize,
-          lamports: 7850880,
-          programId: pid,
-        })
-      ],
-      // signers of the transaction, includes the proposer
       remainingAccounts:
         [{
-          pubkey: multisig.publicKey,
-          isWritable: true,
-          isSigner: false,
-        }, {
           pubkey: anchor.web3.SystemProgram.programId,
           isWritable: true,
           isSigner: false,
@@ -160,21 +129,8 @@ describe("multisig", () => {
           isWritable: true,
           isSigner: false,
         }],
-      // need these keys for sending
-      signers: [transactionID, ownerA, ownerC],
+      signers: [ownerA, ownerC],
     });
-
-    // const minBalance = await provider.connection.getMinimumBalanceForRentExemption(txSize);
-    // console.log(minBalance)
-
-    // Validate that the transaction has been broadcasted on the network
-    const txAccount = await program.account.transaction.fetch(transactionID.publicKey);
-    console.log(txAccount)
-    assert.ok(txAccount.programId.equals(transferPid));
-    assert.deepEqual(txAccount.accounts, accounts);
-    assert.deepEqual(txAccount.data, data);
-    assert.ok(txAccount.multisig.equals(multisig.publicKey));
-    assert.equal(txAccount.didExecute, true);
   });
 });
 
