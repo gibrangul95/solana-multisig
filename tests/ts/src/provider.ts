@@ -97,18 +97,21 @@ export default class Provider {
       opts = this.opts;
     }
 
-    tx.feePayer = this.wallet.publicKey;
+    // tx.feePayer = this.wallet.publicKey;
+    tx.feePayer = signers[0]?.publicKey;
     tx.recentBlockhash = (
       await this.connection.getRecentBlockhash(opts.preflightCommitment)
     ).blockhash;
 
-    await this.wallet.signTransaction(tx);
+    // await this.wallet.signTransaction(tx);
+
     signers
       .filter((s): s is Signer => s !== undefined)
       .forEach((kp) => {
         tx.partialSign(kp);
       });
 
+    console.log(JSON.stringify(tx));
     const rawTx = tx.serialize();
 
     const txId = await sendAndConfirmRawTransaction(
@@ -118,6 +121,37 @@ export default class Provider {
     );
 
     return txId;
+  }
+
+  async build(
+    tx: Transaction,
+    signers?: Array<Signer | undefined>,
+    opts?: ConfirmOptions
+  ) {
+    if (signers === undefined) {
+      signers = [];
+    }
+    if (opts === undefined) {
+      opts = this.opts;
+    }
+
+    // tx.feePayer = this.wallet.publicKey;
+    tx.feePayer = signers[0]?.publicKey;
+    tx.recentBlockhash = (
+      await this.connection.getRecentBlockhash(opts.preflightCommitment)
+    ).blockhash;
+
+    // await this.wallet.signTransaction(tx);
+
+    signers
+      .filter((s): s is Signer => s !== undefined)
+      .forEach((kp) => {
+        tx.partialSign(kp);
+      });
+
+    // console.log(JSON.stringify(tx));
+    const rawTx = tx.serialize();
+    return rawTx;
   }
 
   /**

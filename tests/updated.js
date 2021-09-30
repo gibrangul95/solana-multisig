@@ -7,7 +7,7 @@ const walletSecret = require('./id.json');
 const { accounts: testAccounts } = require('./accounts');
 
 const pid = new anchor.web3.PublicKey('A3HyJSNet7Wx1Sj7rm8WspNrxtLLXamZMWjHG1B6Jc5N');
-
+// 'https://api.devnet.solana.com/'
 describe("multisig", () => {
   // Configure the client to use the local cluster.
   let provider = anchor.Provider.local('https://api.devnet.solana.com/')
@@ -51,6 +51,8 @@ describe("multisig", () => {
     // Set minimum signers
     const threshold = new anchor.BN(2);
 
+    await transfer(provider, systemWallet.publicKey, ownerA.publicKey, systemWallet)
+
     // Broadcast transaction to set owners of the newly created multisig account
     // The multisig account signs the transaction to approve the new owners
     await program.rpc.createMultisig(owners, threshold, nonce, {
@@ -60,11 +62,12 @@ describe("multisig", () => {
       },
       instructions: [
         await program.account.multisig.createInstruction(
+          ownerA,
           multisig,
           multisigSize
         ),
       ],
-      signers: [multisig],
+      signers: [ownerA, multisig],
     });
 
     // Validate the multisig account and its owners 

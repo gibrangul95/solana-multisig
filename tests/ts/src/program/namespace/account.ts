@@ -1,24 +1,24 @@
-import camelCase from "camelcase";
-import EventEmitter from "eventemitter3";
-import * as bs58 from "bs58";
+import camelCase from 'camelcase';
+import EventEmitter from 'eventemitter3';
+import * as bs58 from 'bs58';
 import {
   Signer,
   PublicKey,
   SystemProgram,
   TransactionInstruction,
   Commitment,
-} from "@solana/web3.js";
-import Provider from "../../provider";
-import { Idl, IdlTypeDef } from "../../idl";
+} from '@solana/web3.js';
+import Provider from '../../provider';
+import { Idl, IdlTypeDef } from '../../idl';
 import Coder, {
   ACCOUNT_DISCRIMINATOR_SIZE,
   accountSize,
   AccountsCoder,
-} from "../../coder";
-import { Subscription, Address, translateAddress } from "../common";
-import { getProvider } from "../../";
-import * as pubkeyUtil from "../../utils/pubkey";
-import * as rpcUtil from "../../utils/rpc";
+} from '../../coder';
+import { Subscription, Address, translateAddress } from '../common';
+import { getProvider } from '../../';
+import * as pubkeyUtil from '../../utils/pubkey';
+import * as rpcUtil from '../../utils/rpc';
 
 export default class AccountFactory {
   public static build(
@@ -136,7 +136,7 @@ export class AccountClient<T = any> {
       this._idlAccount.name
     );
     if (discriminator.compare(accountInfo.data.slice(0, 8))) {
-      throw new Error("Invalid account discriminator");
+      throw new Error('Invalid account discriminator');
     }
 
     return this._coder.accounts.decode(this._idlAccount.name, accountInfo.data);
@@ -238,7 +238,7 @@ export class AccountClient<T = any> {
           this._idlAccount.name,
           acc.data
         );
-        ee.emit("change", account);
+        ee.emit('change', account);
       },
       commitment
     );
@@ -257,7 +257,7 @@ export class AccountClient<T = any> {
   async unsubscribe(address: Address) {
     let sub = subscriptions.get(address.toString());
     if (!sub) {
-      console.warn("Address is not subscribed");
+      console.warn('Address is not subscribed');
       return;
     }
     if (subscriptions) {
@@ -274,13 +274,14 @@ export class AccountClient<T = any> {
    * Returns an instruction for creating this account.
    */
   async createInstruction(
+    owner: Signer,
     signer: Signer,
     sizeOverride?: number
   ): Promise<TransactionInstruction> {
     const size = this.size;
 
     return SystemProgram.createAccount({
-      fromPubkey: this._provider.wallet.publicKey,
+      fromPubkey: owner.publicKey,
       newAccountPubkey: signer.publicKey,
       space: sizeOverride ?? size,
       lamports: await this._provider.connection.getMinimumBalanceForRentExemption(

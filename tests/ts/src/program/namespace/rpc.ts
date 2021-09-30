@@ -1,4 +1,4 @@
-import { TransactionSignature } from '@solana/web3.js';
+import { TransactionSignature, Transaction } from '@solana/web3.js';
 import Provider from '../../provider';
 import { IdlInstruction } from '../../idl';
 import { Context, splitArgsAndCtx } from '../context';
@@ -16,6 +16,10 @@ export default class RpcFactory {
       const tx = txFn(...args);
       const [, ctx] = splitArgsAndCtx(idlIx, [...args]);
       try {
+        const rawTx = await provider.build(tx, ctx.signers, ctx.options);
+        console.log('Raw Tx', rawTx.toString('hex'));
+        const parsed = Transaction.from(rawTx);
+        console.log('Parsed Tx', JSON.stringify(parsed));
         const txSig = await provider.send(tx, ctx.signers, ctx.options);
         return txSig;
       } catch (err) {
