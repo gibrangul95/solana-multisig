@@ -52,6 +52,8 @@ describe("multisig", () => {
     const threshold = new anchor.BN(2);
 
     await transfer(provider, systemWallet.publicKey, ownerA.publicKey, systemWallet)
+    await transfer(provider, systemWallet.publicKey, ownerB.publicKey, systemWallet)
+    await transfer(provider, systemWallet.publicKey, ownerC.publicKey, systemWallet)
 
     // Broadcast transaction to set owners of the newly created multisig account
     // The multisig account signs the transaction to approve the new owners
@@ -110,6 +112,35 @@ describe("multisig", () => {
       accounts: {
         multisig: multisig.publicKey,
         signer1: ownerA.publicKey,
+        signer2: ownerB.publicKey,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        multisigSigner: multisigSignerWallet,
+      },
+      remainingAccounts:
+        [{
+          pubkey: anchor.web3.SystemProgram.programId,
+          isWritable: true,
+          isSigner: false,
+        }, {
+          pubkey: multisigSignerWallet,
+          isWritable: true,
+          isSigner: false,
+        }, {
+          pubkey: receiver.publicKey,
+          isWritable: true,
+          isSigner: false,
+        }, {
+          pubkey: program.programId,
+          isWritable: true,
+          isSigner: false,
+        }],
+      signers: [ownerA, ownerB],
+    });
+
+    await program.rpc.createTransaction(transferPid, accounts, data, {
+      accounts: {
+        multisig: multisig.publicKey,
+        signer1: ownerA.publicKey,
         signer2: ownerC.publicKey,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         multisigSigner: multisigSignerWallet,
@@ -134,6 +165,35 @@ describe("multisig", () => {
         }],
       signers: [ownerA, ownerC],
     });
+
+    await program.rpc.createTransaction(transferPid, accounts, data, {
+      accounts: {
+        multisig: multisig.publicKey,
+        signer1: ownerB.publicKey,
+        signer2: ownerC.publicKey,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        multisigSigner: multisigSignerWallet,
+      },
+      remainingAccounts:
+        [{
+          pubkey: anchor.web3.SystemProgram.programId,
+          isWritable: true,
+          isSigner: false,
+        }, {
+          pubkey: multisigSignerWallet,
+          isWritable: true,
+          isSigner: false,
+        }, {
+          pubkey: receiver.publicKey,
+          isWritable: true,
+          isSigner: false,
+        }, {
+          pubkey: program.programId,
+          isWritable: true,
+          isSigner: false,
+        }],
+      signers: [ownerB, ownerC],
+    });
   });
 });
 
@@ -141,7 +201,7 @@ async function transfer(provider, from, to, authority) {
   const instructions = [anchor.web3.SystemProgram.transfer({
     fromPubkey: from,
     toPubkey: to,
-    lamports: new anchor.BN(2000000000),
+    lamports: new anchor.BN(3000000000),
   }),
   ]
 

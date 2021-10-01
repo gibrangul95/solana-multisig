@@ -111,7 +111,6 @@ export default class Provider {
         tx.partialSign(kp);
       });
 
-    console.log(JSON.stringify(tx));
     const rawTx = tx.serialize();
 
     const txId = await sendAndConfirmRawTransaction(

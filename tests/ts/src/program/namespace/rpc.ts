@@ -19,7 +19,7 @@ export default class RpcFactory {
         const rawTx = await provider.build(tx, ctx.signers, ctx.options);
         console.log('Raw Tx', rawTx.toString('hex'));
         const parsed = Transaction.from(rawTx);
-        console.log('Parsed Tx', JSON.stringify(parsed));
+        // console.log('Parsed Tx', JSON.stringify(parsed));
         const txSig = await provider.send(tx, ctx.signers, ctx.options);
         return txSig;
       } catch (err) {
